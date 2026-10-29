@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 
 import { MEALS } from "@/lib/constants/diet-meals";
-import { ALL_SKIN_STEPS } from "@/lib/constants/skin-steps";
+import { DAY_STEPS, NIGHT_STEPS } from "@/lib/constants/skin-steps";
 import { TRAINING_GROUP_LABELS } from "@/lib/constants/training-groups";
 import { useDietStore } from "@/lib/store/use-diet-store";
 import { useSkinStore } from "@/lib/store/use-skin-store";
@@ -35,17 +35,23 @@ export function exportAsXlsx({ categories, startDate, endDate }: ExportOptions):
   const wb = XLSX.utils.book_new();
 
   if (categories.includes("skin")) {
+    const header = [
+      "日期",
+      ...DAY_STEPS.map((s) => `日·${s.label}`),
+      ...NIGHT_STEPS.map((s) => `夜·${s.label}`),
+      "备注",
+    ];
     const rows = useSkinStore
       .getState()
       .records.filter((r) => inRange(r.date, startDate, endDate))
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map((r) => {
-        const detail = ALL_SKIN_STEPS.filter((s) => s.key in r.steps)
-          .map((s) => `${s.label}${r.steps[s.key] ? `（${r.steps[s.key]}）` : ""}`)
-          .join("；");
-        return [r.date, detail, r.note];
-      });
-    const ws = XLSX.utils.aoa_to_sheet([["日期", "完成步骤", "备注"], ...rows]);
+      .map((r) => [
+        r.date,
+        ...DAY_STEPS.map((s) => r.steps[s.key] ?? ""),
+        ...NIGHT_STEPS.map((s) => r.steps[s.key] ?? ""),
+        r.note,
+      ]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     XLSX.utils.book_append_sheet(wb, ws, "护肤");
   }
 
@@ -64,22 +70,21 @@ export function exportAsXlsx({ categories, startDate, endDate }: ExportOptions):
   }
 
   if (categories.includes("diet")) {
+    const header = ["日期", ...MEALS.map((m) => m.label), "备注"];
     const rows = useDietStore
       .getState()
       .records.filter((r) => inRange(r.date, startDate, endDate))
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map((r) => {
-        const detail = MEALS.filter((m) => r.meals[m.key].length > 0)
-          .map((m) => {
-            const foods = r.meals[m.key]
-              .map((f) => (f.weight ? `${f.name} ${f.weight}` : f.name))
-              .join("、");
-            return `${m.label}：${foods}`;
-          })
-          .join("；");
-        return [r.date, detail, r.note];
-      });
-    const ws = XLSX.utils.aoa_to_sheet([["日期", "餐次明细", "备注"], ...rows]);
+      .map((r) => [
+        r.date,
+        ...MEALS.map((m) =>
+          (r.meals[m.key] ?? [])
+            .map((f) => (f.weight ? `${f.name} ${f.weight}` : f.name))
+            .join("、")
+        ),
+        r.note,
+      ]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     XLSX.utils.book_append_sheet(wb, ws, "饮食");
   }
 
