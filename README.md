@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Upgrade Alone · 个人管理
 
-## Getting Started
+一个响应式个人数据记录应用，覆盖护肤、健身、饮食、身体四项数据。PC 与移动端共用同一份云端数据。
 
-First, run the development server:
+## 技术栈
+
+- **框架**：Next.js 14（App Router）+ TypeScript
+- **样式**：Tailwind CSS
+- **状态**：Zustand（本地缓存）
+- **云端**：Supabase PostgreSQL（单用户直连）
+
+## 快速开始
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000 即可访问。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 环境配置
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+在项目根目录创建 `.env.local`（已加入 `.gitignore`，不会被提交）：
 
-## Learn More
+```bash
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-1-<region>.pooler.supabase.com:6543/postgres
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 数据库初始化
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+后端直连 Supabase 云端数据库，包含 4 张表：`body_measures` / `diet_records` / `skin_records` / `training_records`。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+首次启动时应用会自动建表（`create table if not exists`），也可以手动执行：
 
-## Deploy on Vercel
+```bash
+pnpm db:init
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 数据同步策略
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **云端为主**：所有增删改都会写入 Supabase，PC 与移动端共享同一份数据。
+- **本地缓存**：Zustand 作为本地缓存即时渲染；启动时从云端拉取全量数据，写入失败会回退本地缓存并提示。
+- **乐观更新**：本地状态先即时更新，云端同步失败时自动回滚。
+
+## 常用脚本
+
+```bash
+pnpm dev      # 启动开发服务器
+pnpm build    # 生产构建
+pnpm start    # 启动生产服务
+pnpm lint     # 代码检查
+pnpm db:init  # 初始化云端表结构（幂等）
+```
