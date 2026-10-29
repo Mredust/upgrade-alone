@@ -56,15 +56,15 @@ export default function SettingsPage() {
 
   const handleImportFile = (file: File) => {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
-        const result = importData(String(reader.result ?? ""));
+        const result = await importData(String(reader.result ?? ""));
         toast(
-          `已导入：护肤 ${result.skin} 条、健身 ${result.training} 条、饮食 ${result.diet} 条`,
+          `已导入并同步云端：护肤 ${result.skin} 条、健身 ${result.training} 条、饮食 ${result.diet} 条`,
           "success"
         );
       } catch {
-        toast("导入失败：JSON 文件格式不正确", "error");
+        toast("导入失败：JSON 格式不正确或云端同步失败", "error");
       }
     };
     reader.readAsText(file);

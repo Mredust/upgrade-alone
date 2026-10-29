@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { ensureSchema, getPool } from "./db";
 
 import type { BodyMeasure, DietRecord, SkinRecord, TrainingRecord } from "@/lib/types";
@@ -207,4 +209,61 @@ export async function fetchAll(): Promise<AllRecords> {
         listTraining(),
     ]);
     return { body, diet, skin, training };
+}
+
+export interface BulkImportInput {
+    skin: Omit<SkinRecord, "id">[];
+    training: Omit<TrainingRecord, "id">[];
+    diet: Omit<DietRecord, "id">[];
+}
+
+export interface BulkImportResult {
+    skin: SkinRecord[];
+    training: TrainingRecord[];
+    diet: DietRecord[];
+}
+
+// 批量导入：单事务一次性写入全部记录，服务端生成 id，返回已写入的完整记录
+export async function bulkImport(input: BulkImportInput): Promise<BulkImportResult> {
+    await ensureSchema();
+
+    const skin: SkinRecord[] = input.skin.map((r) => ({ ...r, id: randomUUID() }));
+    const training: TrainingRecord[] = input.training.map((r) => ({ ...r, id: randomUUID() }));
+    const diet: DietRecord[] = input.diet.map((r) => ({ ...r, id: randomUUID() }));
+
+    const client = await getPool().connect();
+    try {
+        await client.query("begin");
+
+        for (const r of skin) {
+            await client.query(
+                `insert into skin_records (id, date, steps, note)
+                 values ($1, $2, $3::jsonb, $4)`,
+                [r.id, r.date, JSON.stringify(r.steps), r.note]
+            );
+        }
+        for (const r of training) {
+            await client.query(
+                `insert into training_records (id, date, body_parts, actions, note)
+                 values ($1, $2, $3::jsonb, $4::jsonb, $5)`,
+                [r.id, r.date, JSON.stringify(r.bodyParts), JSON.stringify(r.actions), r.note]
+            );
+        }
+        for (const r of diet) {
+            await client.query(
+                `insert into diet_records (id, date, meals, note)
+                 values ($1, $2, $3::jsonb, $4)`,
+                [r.id, r.date, JSON.stringify(r.meals), r.note]
+            );
+        }
+
+        await client.query("commit");
+    } catch (e) {
+        await client.query("rollback");
+        throw e;
+    } finally {
+        client.release();
+    }
+
+    return { skin, training, diet };
 }

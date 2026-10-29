@@ -1,4 +1,6 @@
+import { importRecords } from "@/lib/actions/records";
 import { EMPTY_MEALS } from "@/lib/constants/diet-meals";
+import { TRAINING_GROUP_LABELS, TRAINING_GROUPS } from "@/lib/constants/training-groups";
 import { useDietStore } from "@/lib/store/use-diet-store";
 import { useSkinStore } from "@/lib/store/use-skin-store";
 import { useTrainingStore } from "@/lib/store/use-training-store";
@@ -29,6 +31,24 @@ function sanitizeMeals(meals: unknown): Record<MealKey, DietFood[]> {
       const f = (food ?? {}) as { name?: unknown; weight?: unknown };
       return { name: String(f.name ?? ""), weight: String(f.weight ?? "") };
     });
+  }
+  return out;
+}
+
+// 中文部位名 -> 部位 key（兼容外部导出的历史数据）
+const LABEL_TO_KEY: Record<string, string> = {
+  ...Object.fromEntries(TRAINING_GROUPS.map((g) => [g.label, g.key] as const)),
+  腹肌: "abs",
+};
+
+function normalizeBodyParts(parts: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of parts) {
+    const key = TRAINING_GROUP_LABELS[raw] ? raw : (LABEL_TO_KEY[raw] ?? "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
   }
   return out;
 }
@@ -84,45 +104,53 @@ export function downloadJsonTemplate(): void {
   URL.revokeObjectURL(url);
 }
 
-export function importData(raw: string): ImportResult {
+export async function importData(raw: string): Promise<ImportResult> {
   const parsed = JSON.parse(raw) as ImportPayload;
-  const result: ImportResult = { skin: 0, training: 0, diet: 0 };
+
+  const skin: SkinInput[] = [];
+  const training: TrainingInput[] = [];
+  const diet: DietInput[] = [];
 
   if (Array.isArray(parsed.skin)) {
-    const store = useSkinStore.getState();
     for (const r of parsed.skin) {
       if (!r || !r.date) continue;
-      store.add({ date: String(r.date), steps: r.steps ?? {}, note: r.note ?? "" });
-      result.skin++;
+      skin.push({ date: String(r.date), steps: r.steps ?? {}, note: r.note ?? "" });
     }
   }
 
   if (Array.isArray(parsed.training)) {
-    const store = useTrainingStore.getState();
     for (const r of parsed.training) {
       if (!r || !r.date) continue;
-      store.add({
+      training.push({
         date: String(r.date),
-        bodyParts: Array.isArray(r.bodyParts) ? r.bodyParts : [],
+        bodyParts: normalizeBodyParts(Array.isArray(r.bodyParts) ? r.bodyParts : []),
         actions: Array.isArray(r.actions) ? r.actions : [],
         note: r.note ?? "",
       });
-      result.training++;
     }
   }
 
   if (Array.isArray(parsed.diet)) {
-    const store = useDietStore.getState();
     for (const r of parsed.diet) {
       if (!r || !r.date) continue;
-      store.add({
-        date: String(r.date),
-        meals: sanitizeMeals(r.meals),
-        note: r.note ?? "",
-      });
-      result.diet++;
+      diet.push({ date: String(r.date), meals: sanitizeMeals(r.meals), note: r.note ?? "" });
     }
   }
 
-  return result;
+  // 一次性写入云端，落库结果以服务端返回为准
+  const written = await importRecords({ skin, training, diet });
+
+  const skinStore = useSkinStore.getState();
+  const trainingStore = useTrainingStore.getState();
+  const dietStore = useDietStore.getState();
+
+  skinStore.setRecords([...written.skin, ...skinStore.records]);
+  trainingStore.setRecords([...written.training, ...trainingStore.records]);
+  dietStore.setRecords([...written.diet, ...dietStore.records]);
+
+  return {
+    skin: written.skin.length,
+    training: written.training.length,
+    diet: written.diet.length,
+  };
 }

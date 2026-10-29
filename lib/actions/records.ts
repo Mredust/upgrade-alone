@@ -2,6 +2,7 @@
 
 import * as db from "@/lib/server/records";
 
+import type { BulkImportInput } from "@/lib/server/records";
 import type { BodyMeasure, DietRecord, SkinRecord, TrainingRecord } from "@/lib/types";
 
 export async function fetchAllRecords() {
@@ -50,4 +51,9 @@ export async function deleteTrainingRecord(id: string) {
 }
 export async function clearTrainingRecords() {
   await db.clearTraining();
+}
+
+// 批量导入（一次性写全部，避免逐条并发丢请求）
+export async function importRecords(input: BulkImportInput) {
+  return db.bulkImport(input);
 }
