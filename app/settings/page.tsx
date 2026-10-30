@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
-import { Download, FileSpreadsheet, Trash2, Upload } from "lucide-react";
+import { Download, Dumbbell, FileSpreadsheet, Sparkles, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,7 +12,9 @@ import { DateField } from "@/components/ui/date-field";
 import { Dialog } from "@/components/ui/dialog";
 import { useBodyStore } from "@/lib/store/use-body-store";
 import { useDietStore } from "@/lib/store/use-diet-store";
+import { useHabitStore } from "@/lib/store/use-habit-store";
 import { useSkinStore } from "@/lib/store/use-skin-store";
+import { useSleepStore } from "@/lib/store/use-sleep-store";
 import { useTrainingStore } from "@/lib/store/use-training-store";
 import { toast } from "@/lib/store/use-toast-store";
 import { todayKey } from "@/lib/utils/date";
@@ -23,6 +26,11 @@ const CATEGORY_OPTIONS: { key: ExportCategory; label: string }[] = [
   { key: "skin", label: "护肤" },
   { key: "training", label: "健身" },
   { key: "diet", label: "饮食" },
+  { key: "sleep", label: "睡眠" },
+  { key: "records", label: "记录" },
+  { key: "body", label: "我的" },
+  { key: "skinProducts", label: "护肤品" },
+  { key: "trainingActions", label: "动作" },
 ];
 
 export default function SettingsPage() {
@@ -34,6 +42,11 @@ export default function SettingsPage() {
     "skin",
     "training",
     "diet",
+    "sleep",
+    "records",
+    "body",
+    "skinProducts",
+    "trainingActions",
   ]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +73,7 @@ export default function SettingsPage() {
       try {
         const result = await importData(String(reader.result ?? ""));
         toast(
-          `已导入并同步云端：护肤 ${result.skin} 条、健身 ${result.training} 条、饮食 ${result.diet} 条`,
+          `已导入并同步云端：护肤 ${result.skin} 条、健身 ${result.training} 条、饮食 ${result.diet} 条、睡眠 ${result.sleep} 条、记录 ${result.records} 条、我的 ${result.body} 条、护肤品 ${result.skinProducts} 条、动作 ${result.trainingActions} 条`,
           "success"
         );
       } catch {
@@ -75,6 +88,8 @@ export default function SettingsPage() {
     useTrainingStore.getState().reset();
     useDietStore.getState().reset();
     useBodyStore.getState().reset();
+    useSleepStore.getState().reset();
+    useHabitStore.getState().reset();
     toast("已清空全部数据", "warning");
   };
 
@@ -102,7 +117,7 @@ export default function SettingsPage() {
           <div>
             <p className="text-sm font-semibold">数据导入</p>
             <p className="mt-1 hidden text-xs text-muted-foreground lg:block">
-              下载 JSON 模板后按结构填写，导入护肤 / 健身 / 饮食数据。
+              下载 JSON 模板后按结构填写，导入护肤 / 健身 / 饮食 / 睡眠 / 记录 / 我的数据。
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
@@ -132,9 +147,45 @@ export default function SettingsPage() {
       <Card className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
+            <p className="text-sm font-semibold">护肤品管理</p>
+            <p className="mt-1 hidden text-xs text-muted-foreground lg:block">
+              管理洁面、爽肤水、眼霜、精华、乳液、面霜、防晒下使用的产品，供护肤记录表单下拉选择。
+            </p>
+          </div>
+          <Link
+            href="/settings/skin-products"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            <Sparkles className="h-4 w-4" />
+            进入管理
+          </Link>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">训练动作管理</p>
+            <p className="mt-1 hidden text-xs text-muted-foreground lg:block">
+              管理各部位下的动作列表，供训练记录表单多选（胸、背、肩、腿、三头、二头、腹、有氧）。
+            </p>
+          </div>
+          <Link
+            href="/settings/training-actions"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            <Dumbbell className="h-4 w-4" />
+            进入管理
+          </Link>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
             <p className="text-sm font-semibold">危险操作</p>
             <p className="mt-1 hidden text-xs text-muted-foreground lg:block">
-              清空护肤、训练、饮食与身体数据，且无法恢复。
+              清空护肤、训练、饮食、身体、睡眠与打卡记录，且无法恢复。
             </p>
           </div>
           <Button variant="destructive" onClick={() => setConfirmClear(true)} className="shrink-0">
@@ -185,7 +236,7 @@ export default function SettingsPage() {
         open={confirmClear}
         onOpenChange={setConfirmClear}
         title="确认清空全部数据？"
-        description="将删除所有护肤、训练、饮食与身体数据，且无法恢复。建议先导出 Excel 备份。"
+        description="将删除所有护肤、训练、饮食、身体、睡眠与打卡记录，且无法恢复。建议先导出 Excel 备份。"
         confirmLabel="确认清空"
         destructive
         onConfirm={handleClear}

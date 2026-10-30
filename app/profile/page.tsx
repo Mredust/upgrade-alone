@@ -1,24 +1,29 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 import { MeasureForm } from "@/components/profile/measure-form";
 import { MeasureList } from "@/components/profile/measure-list";
 import { TrendChart } from "@/components/profile/trend-chart";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
+import { useIsDesktop } from "@/lib/hooks/use-media-query";
 import { useBodyStore } from "@/lib/store/use-body-store";
 import type { BodyMeasure } from "@/lib/types";
 import { calcBmi, bmiCategory } from "@/lib/utils/bmi";
 
 export default function ProfilePage() {
+  const isDesktop = useIsDesktop();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<BodyMeasure | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const measures = useBodyStore((s) => s.measures);
   const add = useBodyStore((s) => s.add);
   const update = useBodyStore((s) => s.update);
+  const reset = useBodyStore((s) => s.reset);
 
   const latest = useMemo(
     () => measures.slice().sort((a, b) => b.date.localeCompare(a.date))[0],
@@ -38,22 +43,30 @@ export default function ProfilePage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">我的</h1>
-        <Button
-          size="sm"
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          新增
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)}>
+            <Trash2 className="h-4 w-4" />
+            清理
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            新增
+          </Button>
+        </div>
       </div>
 
-      <Card className="p-4">
-        <p className="mb-3 text-sm font-semibold">BMI / 体重趋势</p>
-        <TrendChart />
-      </Card>
+      {isDesktop && (
+        <Card className="p-4">
+          <p className="mb-3 text-sm font-semibold">BMI / 体重趋势</p>
+          <TrendChart />
+        </Card>
+      )}
 
       <Card className="p-4">
         <p className="text-xs text-muted-foreground">最新 BMI</p>
@@ -88,6 +101,16 @@ export default function ProfilePage() {
           onCancel={() => setOpen(false)}
         />
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        title="确认清空身体数据？"
+        description="将删除所有身体记录（身高、体重、围度等），且无法恢复。"
+        confirmLabel="确认清理"
+        destructive
+        onConfirm={reset}
+      />
     </div>
   );
 }

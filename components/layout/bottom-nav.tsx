@@ -11,7 +11,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden">
-      <div className="grid grid-cols-5">
+      <div className="grid grid-cols-3">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (

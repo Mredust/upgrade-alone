@@ -1,15 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
+import { Check, X } from "lucide-react";
 
 import { Heatmap } from "@/components/dashboard/heatmap";
+import { TrendChart } from "@/components/profile/trend-chart";
+import { SleepReport } from "@/components/sleep/sleep-report";
 import { Card } from "@/components/ui/card";
 import { DAY_STEPS, NIGHT_STEPS } from "@/lib/constants/skin-steps";
 import { useIsDesktop } from "@/lib/hooks/use-media-query";
-import { useBodyStore } from "@/lib/store/use-body-store";
+import { useDietStore } from "@/lib/store/use-diet-store";
 import { useSkinStore } from "@/lib/store/use-skin-store";
+import { useSleepStore } from "@/lib/store/use-sleep-store";
 import { useTrainingStore } from "@/lib/store/use-training-store";
-import { calcBmi } from "@/lib/utils/bmi";
+import { todayKey } from "@/lib/utils/date";
 import type { SkinRecord, TrainingRecord } from "@/lib/types";
 
 const SKIN_DAY_KEYS = DAY_STEPS.map((s) => s.key);
@@ -60,11 +65,42 @@ function CheckinCard({ recordLabel, rateLabel, total, thisMonth, rate }: Checkin
   );
 }
 
-function BmiCard({ value }: { value: string }) {
+interface TodoItem {
+  label: string;
+  done: boolean;
+  href: string;
+}
+
+function TodoIcon({ done }: { done: boolean }) {
+  return done ? (
+    <Check className="h-5 w-5 text-success" />
+  ) : (
+    <X className="h-5 w-5 text-destructive" />
+  );
+}
+
+function TodayTodoCard({ items }: { items: TodoItem[] }) {
   return (
-    <Card className="p-4">
-      <p className="text-xs text-muted-foreground">BMI</p>
-      <p className="mt-1 text-xl font-semibold tabular">{value}</p>
+    <Card className="p-3">
+      <p className="text-sm font-semibold">今日待办</p>
+      <div className="mt-2 grid grid-cols-4 gap-1">
+        {items.map((it) => {
+          const body = (
+            <div className="flex flex-col items-center gap-1">
+              <TodoIcon done={it.done} />
+              <span className="text-[10px] text-muted-foreground">{it.label}</span>
+            </div>
+          );
+          // 未记录（错号）可点击跳转；已记录（对号）不跳转
+          return it.done ? (
+            <div key={it.label}>{body}</div>
+          ) : (
+            <Link key={it.label} href={it.href} className="transition-opacity hover:opacity-70">
+              {body}
+            </Link>
+          );
+        })}
+      </div>
     </Card>
   );
 }
@@ -72,13 +108,8 @@ function BmiCard({ value }: { value: string }) {
 export default function DashboardPage() {
   const skin = useSkinStore((s) => s.records);
   const training = useTrainingStore((s) => s.records);
-  const measures = useBodyStore((s) => s.measures);
-
-  const latestMeasure = useMemo(
-    () => measures.slice().sort((a, b) => b.date.localeCompare(a.date))[0],
-    [measures]
-  );
-  const latestBmi = calcBmi(latestMeasure?.height, latestMeasure?.weight);
+  const sleepRecords = useSleepStore((s) => s.records);
+  const dietRecords = useDietStore((s) => s.records);
   const isDesktop = useIsDesktop();
 
   const skinCheckedDates = useMemo(() => {
@@ -92,6 +123,15 @@ export default function DashboardPage() {
     for (const r of training) if (isTrainingChecked(r)) set.add(r.date);
     return set;
   }, [training]);
+
+  // 今日待办：有当天记录即打勾（训练仅休息部位也算已记录）
+  const today = todayKey();
+  const todoItems: TodoItem[] = [
+    { label: "护肤", done: skin.some((r) => r.date === today), href: "/skin" },
+    { label: "训练", done: training.some((r) => r.date === today), href: "/training" },
+    { label: "饮食", done: dietRecords.some((r) => r.date === today), href: "/diet" },
+    { label: "睡眠", done: sleepRecords.some((r) => r.date === today), href: "/sleep" },
+  ];
 
   const now = new Date();
   const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -112,6 +152,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4">
+      {/* 移动端：今日待办占一行 */}
+      <div className="lg:hidden">
+        <TodayTodoCard items={todoItems} />
+      </div>
+
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 lg:gap-3">
         <CheckinCard
           recordLabel="护肤记录"
@@ -127,12 +172,13 @@ export default function DashboardPage() {
           thisMonth={trainingThisMonth}
           rate={`${trainingRate}%`}
         />
+        {/* PC 端：顶部右侧为今日待办 */}
         <div className="hidden lg:block">
-          <BmiCard value={latestBmi ? latestBmi.toFixed(1) : "—"} />
+          <TodayTodoCard items={todoItems} />
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
         <Heatmap
           title="护肤打卡"
           checkedDates={skinCheckedDates}
@@ -144,6 +190,15 @@ export default function DashboardPage() {
           mode={isDesktop ? "year" : "mobile"}
         />
       </div>
+
+      <SleepReport records={sleepRecords} />
+
+      {!isDesktop && (
+        <Card className="p-4">
+          <p className="mb-3 text-sm font-semibold">BMI / 体重趋势</p>
+          <TrendChart />
+        </Card>
+      )}
     </div>
   );
 }

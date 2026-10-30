@@ -5,9 +5,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateField } from "@/components/ui/date-field";
-import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DAY_STEPS, NIGHT_STEPS } from "@/lib/constants/skin-steps";
+import type { SkinStep } from "@/lib/constants/skin-steps";
+import { useSkinColumnStore } from "@/lib/store/use-skin-column-store";
+import { useSkinProductStore } from "@/lib/store/use-skin-product-store";
 import type { SkinRecord } from "@/lib/types";
 import { todayKey } from "@/lib/utils/date";
 
@@ -21,6 +24,18 @@ export function SkinForm({ initial, onSubmit, onCancel }: SkinFormProps) {
   const [date, setDate] = useState(initial?.date ?? todayKey());
   const [steps, setSteps] = useState<Record<string, string>>(initial?.steps ?? {});
   const [note, setNote] = useState(initial?.note ?? "");
+  const products = useSkinProductStore((s) => s.products);
+  const columns = useSkinColumnStore((s) => s.columns);
+
+  // 日间/夜间步骤遍历护肤品管理表头（防晒仅日间展示）
+  const daySteps: SkinStep[] = [
+    ...DAY_STEPS,
+    ...columns.map((c) => ({ key: `day_${c.key}`, label: c.label, category: c.key })),
+  ];
+  const nightSteps: SkinStep[] = [
+    ...NIGHT_STEPS,
+    ...columns.map((c) => ({ key: `night_${c.key}`, label: c.label, category: c.key })),
+  ];
 
   const toggle = (key: string, checked: boolean) =>
     setSteps((s) => {
@@ -40,10 +55,11 @@ export function SkinForm({ initial, onSubmit, onCancel }: SkinFormProps) {
     onSubmit({ date, steps, note });
   };
 
-  const renderSteps = (list: typeof DAY_STEPS) => (
+  const renderSteps = (list: SkinStep[]) => (
     <div className="space-y-2">
       {list.map((s) => {
         const checked = s.key in steps;
+        const options = products.filter((p) => p.category === s.category);
         return (
           <div key={s.key} className="flex items-center gap-2">
             <Checkbox
@@ -53,12 +69,18 @@ export function SkinForm({ initial, onSubmit, onCancel }: SkinFormProps) {
               className="w-32 shrink-0"
             />
             {checked && (
-              <Input
-                placeholder="使用的产品"
+              <Select
                 value={steps[s.key] ?? ""}
                 onChange={(e) => setProduct(s.key, e.target.value)}
                 className="h-8 flex-1"
-              />
+              >
+                <option value="">请选择产品</option>
+                {options.map((p) => (
+                  <option key={p.id} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
             )}
           </div>
         );
@@ -75,12 +97,12 @@ export function SkinForm({ initial, onSubmit, onCancel }: SkinFormProps) {
 
       <div>
         <p className="mb-2 text-sm font-medium">日间护肤步骤</p>
-        {renderSteps(DAY_STEPS)}
+        {renderSteps(daySteps)}
       </div>
 
       <div>
         <p className="mb-2 text-sm font-medium">夜间护肤步骤</p>
-        {renderSteps(NIGHT_STEPS)}
+        {renderSteps(nightSteps)}
       </div>
 
       <div>

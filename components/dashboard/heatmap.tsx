@@ -3,13 +3,13 @@
 import { useMemo } from "react";
 import {
   addDays,
-  addMonths,
   endOfMonth,
   format,
   startOfMonth,
   startOfWeek,
-  subMonths,
 } from "date-fns";
+
+import { cn } from "@/lib/utils/cn";
 
 export type HeatmapMode = "year" | "mobile";
 
@@ -36,9 +36,8 @@ function buildMonthBlocks(mode: HeatmapMode): MonthBlock[] {
     const year = today.getFullYear();
     for (let m = 0; m < 12; m++) firstDays.push(new Date(year, m, 1));
   } else {
-    // 移动端：上月、本月、下月
-    const thisMonth = startOfMonth(today);
-    firstDays.push(subMonths(thisMonth, 1), thisMonth, addMonths(thisMonth, 1));
+    // 移动端：仅显示本月
+    firstDays.push(startOfMonth(today));
   }
 
   return firstDays.map((firstDay) => {
@@ -73,10 +72,10 @@ export function Heatmap({ title, checkedDates, mode }: HeatmapProps) {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">{title}</h3>
         <span className="text-xs text-muted-foreground">
-          {mode === "year" ? "今年 1-12 月" : "近 3 个月"}
+          {mode === "year" ? "今年 1-12 月" : "本月"}
         </span>
       </div>
-      <div className="flex gap-1 overflow-x-auto">
+      <div className={cn("flex gap-1 overflow-x-auto", mode === "mobile" && "justify-center")}>
         <div className="flex shrink-0 flex-col">
           <span className="mb-1 text-[10px] leading-none">&nbsp;</span>
           <div className="flex flex-col gap-1">

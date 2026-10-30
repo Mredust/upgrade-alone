@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Check, Minus, Pencil, Trash2 } from "lucide-react";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Pagination } from "@/components/ui/pagination";
@@ -82,7 +82,11 @@ export function SkinList({ onEdit }: SkinListProps) {
                 </td>
                 {ALL_SKIN_STEPS.map((s) => (
                   <td key={s.key} className="px-2 py-2 text-center">
-                    {s.key in r.steps ? "✓" : "—"}
+                    {s.key in r.steps ? (
+                      <Check className="mx-auto h-4 w-4 text-success" />
+                    ) : (
+                      <Minus className="mx-auto h-4 w-4 text-muted-foreground/40" />
+                    )}
                   </td>
                 ))}
                 <td className="max-w-[160px] truncate px-3 py-2 text-muted-foreground">

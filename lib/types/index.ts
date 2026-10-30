@@ -56,3 +56,39 @@ export interface BodyMeasure {
   thighRight?: number;
   note?: string;
 }
+
+export interface SleepRecord {
+  id: string;
+  date: string; // YYYY-MM-DD 入睡日期
+  sleepTime: string; // "HH:mm" 入睡时间
+  wakeTime: string; // "HH:mm" 起床时间（可跨天）
+  napMinutes: number; // 午睡时长（分钟）
+  quality: number; // 睡眠质量自评 0-100
+  note: string;
+}
+
+export interface HabitRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  a: number; // A 事项数值，0 表示未勾选
+  b: number; // B 事项数值，0 表示未勾选
+}
+
+export interface SkinProduct {
+  id: string;
+  category: string; // 产品类别 key（洁面/爽肤水/眼霜/精华/乳液/面霜/防晒）
+  name: string;
+}
+
+export interface TrainingActionItem {
+  id: string;
+  group: string; // 部位 key（胸/背/肩/腿/三头/二头/腹/有氧）
+  name: string;
+}
+
+// 管理页自定义列（护肤品类别 / 训练部位），key 用于产品/动作的关联
+export interface CustomColumn {
+  id: string;
+  key: string;
+  label: string;
+}

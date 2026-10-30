@@ -31,7 +31,7 @@ export function Pagination({
         <Select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="h-8 w-[72px] px-2"
+          className="h-8 w-[72px]"
         >
           {PAGE_SIZE_OPTIONS.map((n) => (
             <option key={n} value={n}>

@@ -58,6 +58,53 @@ create table if not exists training_records (
   note text not null default '',
   updated_at timestamptz not null default now()
 );
+
+create table if not exists sleep_records (
+  id text primary key,
+  date text not null,
+  sleep_time text not null default '',
+  wake_time text not null default '',
+  nap_minutes integer not null default 0,
+  quality integer not null default 0,
+  note text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists habit_records (
+  id text primary key,
+  date text not null,
+  a integer not null default 0,
+  b integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists skin_products (
+  id text primary key,
+  category text not null,
+  name text not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists training_action_items (
+  id text primary key,
+  group_key text not null,
+  name text not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists skin_custom_columns (
+  id text primary key,
+  key text not null,
+  label text not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists training_custom_columns (
+  id text primary key,
+  key text not null,
+  label text not null,
+  updated_at timestamptz not null default now()
+);
 `;
 
 let schemaReady: Promise<void> | null = null;

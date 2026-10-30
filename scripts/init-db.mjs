@@ -44,6 +44,25 @@ create table if not exists training_records (
   note text not null default '',
   updated_at timestamptz not null default now()
 );
+
+create table if not exists sleep_records (
+  id text primary key,
+  date text not null,
+  sleep_time text not null default '',
+  wake_time text not null default '',
+  nap_minutes integer not null default 0,
+  quality integer not null default 0,
+  note text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists habit_records (
+  id text primary key,
+  date text not null,
+  a integer not null default 0,
+  b integer not null default 0,
+  updated_at timestamptz not null default now()
+);
 `;
 
 async function main() {
@@ -62,7 +81,7 @@ async function main() {
     await pool.query("select 1");
     console.log("已连接 Supabase");
     await pool.query(schema);
-    console.log("表结构已就绪：body_measures / diet_records / skin_records / training_records");
+    console.log("表结构已就绪：body_measures / diet_records / skin_records / training_records / sleep_records / habit_records");
   } finally {
     await pool.end();
   }
