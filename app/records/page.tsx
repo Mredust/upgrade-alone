@@ -99,22 +99,32 @@ export default function RecordsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Card className="p-3">
-          <p className="text-xs text-muted-foreground">A 总次数</p>
-          <p className="mt-1 text-xl font-semibold tabular text-success">{aTotal}</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-xs text-muted-foreground">B 总次数</p>
-          <p className="mt-1 text-xl font-semibold tabular text-destructive">{bTotal}</p>
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="col-span-1 p-2 sm:p-3">
+          <div className="grid h-full grid-cols-2 divide-x divide-border">
+            <div className="flex flex-col justify-center text-center">
+              <p className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">
+                A 总次数
+              </p>
+              <p className="mt-1 text-lg font-semibold tabular text-success sm:text-xl">{aTotal}</p>
+            </div>
+            <div className="flex flex-col justify-center text-center">
+              <p className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">
+                B 总次数
+              </p>
+              <p className="mt-1 text-lg font-semibold tabular text-destructive sm:text-xl">
+                {bTotal}
+              </p>
+            </div>
+          </div>
         </Card>
         <Card className="col-span-2 p-3">
-          <p className="text-xs text-muted-foreground">本年每月次数（A+B）</p>
-          <div className="mt-2 grid grid-cols-6 gap-2 sm:grid-cols-12">
+          <p className="text-xs text-muted-foreground">本年每月（A+B）</p>
+          <div className="mt-2 grid grid-cols-4 gap-x-1 gap-y-1.5 sm:grid-cols-6 lg:grid-cols-12">
             {monthlyTotal.map((m) => (
-              <div key={m.label} className="text-center">
-                <p className="text-[10px] text-muted-foreground">{m.label}</p>
-                <p className="text-sm font-semibold tabular">{m.total}</p>
+              <div key={m.label} className="text-center leading-tight">
+                <p className="text-[9px] text-muted-foreground">{m.label}</p>
+                <p className="text-xs font-semibold tabular">{m.total}</p>
               </div>
             ))}
           </div>

@@ -64,27 +64,37 @@ function buildMonthBlocks(mode: HeatmapMode): MonthBlock[] {
   });
 }
 
-function Cell({ record }: { record: HabitRecord | undefined }) {
-  const a = record && record.a > 0;
-  const b = record && record.b > 0;
-
-  if (a && b) {
-    return (
-      <div className="flex h-3.5 w-3.5 flex-col overflow-hidden rounded-sm">
-        <div className="h-1/2 w-full bg-success" />
-        <div className="h-1/2 w-full bg-destructive" />
-      </div>
-    );
+// A 次数 → 浅/中/深绿色；B 次数 → 浅/中/深红色；A、B 同时存在 → 黄色
+function cellClass(record: HabitRecord | undefined): string {
+  const a = record?.a ?? 0;
+  const b = record?.b ?? 0;
+  if (a > 0 && b > 0) return "bg-yellow-400";
+  if (a > 0) {
+    if (a === 1) return "bg-green-300";
+    if (a === 2) return "bg-green-500";
+    return "bg-green-700";
   }
+  if (b > 0) {
+    if (b === 1) return "bg-red-300";
+    if (b === 2) return "bg-red-500";
+    return "bg-red-700";
+  }
+  return "bg-muted";
+}
+
+function cellTitle(record: HabitRecord | undefined): string {
+  if (!record) return "";
+  const parts: string[] = [];
+  if (record.a > 0) parts.push(`A×${record.a}`);
+  if (record.b > 0) parts.push(`B×${record.b}`);
+  return parts.length > 0 ? `：${parts.join("，")}` : "";
+}
+
+function Cell({ date, record }: { date: string; record: HabitRecord | undefined }) {
   return (
     <div
-      className={
-        a
-          ? "h-3.5 w-3.5 rounded-sm bg-success"
-          : b
-            ? "h-3.5 w-3.5 rounded-sm bg-destructive"
-            : "h-3.5 w-3.5 rounded-sm bg-muted"
-      }
+      className={`h-3.5 w-3.5 rounded-sm ${cellClass(record)}`}
+      title={`${date}${cellTitle(record)}`}
     />
   );
 }
@@ -102,12 +112,21 @@ export function HabitHeatmap({ records, mode }: HabitHeatmapProps) {
     <div className="rounded border border-border p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">记录热点图</h3>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-sm bg-success" /> A
+            <span>A</span>
+            <span className="h-2.5 w-2.5 rounded-sm bg-green-300" title="1 次" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-green-500" title="2 次" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-green-700" title="3 次及以上" />
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-sm bg-destructive" /> B
+            <span>B</span>
+            <span className="h-2.5 w-2.5 rounded-sm bg-red-300" title="1 次" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-red-500" title="2 次" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-red-700" title="3 次及以上" />
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-sm bg-yellow-400" /> A+B
           </span>
         </div>
       </div>
@@ -139,7 +158,7 @@ export function HabitHeatmap({ records, mode }: HabitHeatmapProps) {
                         return <div key={`blank-${wi}-${di}`} className="h-3.5 w-3.5 rounded-sm" />;
                       }
                       const record = byDate.get(date);
-                      return <Cell key={date} record={record} />;
+                      return <Cell key={date} date={date} record={record} />;
                     })}
                   </div>
                 ))}

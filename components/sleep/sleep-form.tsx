@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { SleepRecord } from "@/lib/types";
 import { todayKey } from "@/lib/utils/date";
-import { scoreSleepQuality } from "@/lib/utils/sleep";
+import { calcTotalDuration, formatDuration, scoreSleepQuality } from "@/lib/utils/sleep";
 
 // 入睡/起床时间选项：00:00、00:30、01:00 … 23:30
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
@@ -31,6 +31,9 @@ export function SleepForm({ initial, onSubmit, onCancel }: SleepFormProps) {
   const [napMinutes, setNapMinutes] = useState(initial?.napMinutes ?? 0);
   const [note, setNote] = useState(initial?.note ?? "");
 
+  const totalMinutes = calcTotalDuration(date, sleepTime, wakeTime, Number(napMinutes) || 0);
+  const quality = scoreSleepQuality(date, sleepTime, wakeTime, Number(napMinutes) || 0);
+
   const handleSubmit = () => {
     if (!date) return;
     onSubmit({
@@ -38,8 +41,8 @@ export function SleepForm({ initial, onSubmit, onCancel }: SleepFormProps) {
       sleepTime,
       wakeTime,
       napMinutes: Number(napMinutes) || 0,
-      // 系统自动测评：时长得分 + 熬夜得分
-      quality: scoreSleepQuality(sleepTime, wakeTime, Number(napMinutes) || 0),
+      // 系统自动测评：时长得分 + 熬夜得分（入睡日期 → 日期次日）
+      quality,
       note,
     });
   };
@@ -75,6 +78,18 @@ export function SleepForm({ initial, onSubmit, onCancel }: SleepFormProps) {
           </Select>
         </div>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        入睡时间为所选日期，起床时间默认为日期次日（晚于入睡时间则按当天计算）
+        {sleepTime && wakeTime && (
+          <>
+            ：总时长（含午睡）
+            <span className="ml-1 font-medium text-foreground">{formatDuration(totalMinutes)}</span>
+            ，质量得分
+            <span className="ml-1 font-medium text-foreground">{quality}</span>
+          </>
+        )}
+      </p>
 
       <div>
         <p className="mb-1 text-sm font-medium">午睡时长（分钟）</p>

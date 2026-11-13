@@ -18,29 +18,65 @@ export function minutesToTime(min: number): string {
   return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
+// 入睡时间趋势坐标：以 00:00 为坐标中心，上半部分为 00:00-12:00（上午），
+// 下半部分为 12:00-24:00（下午/晚上），避免 23:00 与 00:00 在图上被拉成最大跨度。
+export function bedtimeChartValue(t: string): number {
+  const m = timeToMinutes(t);
+  return m <= 12 * 60 ? m : m - 24 * 60;
+}
+
+export const BEDTIME_CHART_TICKS = [-12 * 60, -6 * 60, 0, 6 * 60, 12 * 60];
+
 // 归一化到“当天晚上”：早于 12:00 视为跨天凌晨，+24h（用于比较入睡先后）
 function normalizeMinutes(t: string): number {
   const m = timeToMinutes(t);
   return m < 12 * 60 ? m + 24 * 60 : m;
 }
 
-// 夜间睡眠分钟数（起床早于入睡视为跨天）
-export function calcNightMinutes(sleepTime: string, wakeTime: string): number {
-  if (!sleepTime || !wakeTime) return 0;
-  const st = normalizeMinutes(sleepTime);
-  let wt = normalizeMinutes(wakeTime);
-  if (wt <= st) wt += 24 * 60;
-  return wt - st;
+// 日期 + "HH:mm" -> 本地时间；非法输入返回 null
+function toDateTime(date: string, t: string): Date | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t ?? "");
+  if (!date || !m) return null;
+  const d = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+  return d;
+}
+
+// 睡眠时间窗：入睡时间为所选日期，起床时间默认为日期次日；
+// 若起床时间晚于入睡时间（如 01:00 入睡、08:00 起床），则按同一天处理。
+export function sleepWindow(
+  date: string,
+  sleepTime: string,
+  wakeTime: string
+): { start: Date; wake: Date } | null {
+  const start = toDateTime(date, sleepTime);
+  const wake = toDateTime(date, wakeTime);
+  if (!start || !wake) return null;
+  if (wake <= start) wake.setDate(wake.getDate() + 1);
+  return { start, wake };
+}
+
+// 夜间睡眠分钟数（例：2026-11-11 23:00 入睡 → 2026-11-12 07:00 起床 = 480 分钟）
+export function calcNightMinutes(date: string, sleepTime: string, wakeTime: string): number {
+  const win = sleepWindow(date, sleepTime, wakeTime);
+  if (!win) return 0;
+  return Math.round((win.wake.getTime() - win.start.getTime()) / 60000);
 }
 
 // 总睡眠分钟数（传入完整记录）= 夜间 + 午睡
 export function calcTotalMinutes(r: SleepRecord): number {
-  return calcNightMinutes(r.sleepTime, r.wakeTime) + (r.napMinutes || 0);
+  return calcNightMinutes(r.date, r.sleepTime, r.wakeTime) + (r.napMinutes || 0);
 }
 
-// 总睡眠分钟数（直接传入时间与午睡）
-export function calcTotalDuration(sleepTime: string, wakeTime: string, napMinutes: number): number {
-  return calcNightMinutes(sleepTime, wakeTime) + (napMinutes || 0);
+// 总睡眠分钟数（直接传入日期、时间与午睡）
+export function calcTotalDuration(
+  date: string,
+  sleepTime: string,
+  wakeTime: string,
+  napMinutes: number
+): number {
+  return calcNightMinutes(date, sleepTime, wakeTime) + (napMinutes || 0);
 }
 
 export function formatDuration(min: number): string {
@@ -79,9 +115,16 @@ function scoreLateNight(sleepTime: string): number {
 }
 
 // 睡眠质量系统评分（0-100）= 时长得分(60) + 熬夜得分(40)
-export function scoreSleepQuality(sleepTime: string, wakeTime: string, napMinutes: number): number {
+// 时长按「入睡日期 → 日期次日」计算，例如 11-11 23:00 入睡、11-12 07:00 起床 = 8 小时
+export function scoreSleepQuality(
+  date: string,
+  sleepTime: string,
+  wakeTime: string,
+  napMinutes: number
+): number {
   return (
-    scoreDuration(calcTotalDuration(sleepTime, wakeTime, napMinutes)) + scoreLateNight(sleepTime)
+    scoreDuration(calcTotalDuration(date, sleepTime, wakeTime, napMinutes)) +
+    scoreLateNight(sleepTime)
   );
 }
 

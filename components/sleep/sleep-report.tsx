@@ -13,7 +13,12 @@ import {
 
 import { Card } from "@/components/ui/card";
 import type { SleepRecord } from "@/lib/types";
-import { computeSleepStats, minutesToTime, timeToMinutes } from "@/lib/utils/sleep";
+import {
+  BEDTIME_CHART_TICKS,
+  bedtimeChartValue,
+  computeSleepStats,
+  minutesToTime,
+} from "@/lib/utils/sleep";
 
 interface SleepReportProps {
   records: SleepRecord[];
@@ -51,7 +56,7 @@ export function SleepReport({ records }: SleepReportProps) {
       [...records]
         .filter((r) => r.sleepTime)
         .sort((a, b) => a.date.localeCompare(b.date))
-        .map((r) => ({ date: r.date.slice(5), bedtime: timeToMinutes(r.sleepTime) })),
+        .map((r) => ({ date: r.date.slice(5), bedtime: bedtimeChartValue(r.sleepTime) })),
     [records]
   );
 
@@ -105,7 +110,10 @@ export function SleepReport({ records }: SleepReportProps) {
         </div>
 
         <div>
-          <p className="mb-2 text-xs text-muted-foreground">入睡时间趋势</p>
+          <p className="mb-0.5 text-xs text-muted-foreground">入睡时间趋势</p>
+          <p className="mb-2 text-[10px] leading-tight text-muted-foreground">
+            中轴 00:00 · 上半部分 00-12 点 · 下半部分 12-24 点
+          </p>
           {bedtimeTrend.length === 0 ? (
             <EmptyChart />
           ) : (
@@ -115,7 +123,8 @@ export function SleepReport({ records }: SleepReportProps) {
                   <CartesianGrid strokeDasharray="3 3" stroke="#E4E4E7" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#71717A" />
                   <YAxis
-                    domain={[0, 1440]}
+                    domain={[-12 * 60, 12 * 60]}
+                    ticks={BEDTIME_CHART_TICKS}
                     tick={{ fontSize: 11 }}
                     stroke="#71717A"
                     tickFormatter={(v) => minutesToTime(Number(v))}

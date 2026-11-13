@@ -135,20 +135,22 @@ export default function DashboardPage() {
 
   const now = new Date();
   const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  // 完成率分母：本月 1 号到今天的天数
+  const elapsedDays = now.getDate();
 
   const skinTotal = skinCheckedDates.size;
   const trainingTotal = trainingCheckedDates.size;
 
-  const skinThisMonth = skin.filter(
-    (r) => isSkinChecked(r) && r.date.startsWith(monthPrefix)
+  // 同一天只计一次，避免重复记录导致完成率超过 100%
+  const skinThisMonth = Array.from(skinCheckedDates).filter(
+    (d) => d.startsWith(monthPrefix) && d <= today
   ).length;
-  const trainingThisMonth = training.filter(
-    (r) => isTrainingChecked(r) && r.date.startsWith(monthPrefix)
+  const trainingThisMonth = Array.from(trainingCheckedDates).filter(
+    (d) => d.startsWith(monthPrefix) && d <= today
   ).length;
 
-  const skinRate = daysInMonth > 0 ? Math.round((skinThisMonth / daysInMonth) * 100) : 0;
-  const trainingRate = daysInMonth > 0 ? Math.round((trainingThisMonth / daysInMonth) * 100) : 0;
+  const skinRate = elapsedDays > 0 ? Math.round((skinThisMonth / elapsedDays) * 100) : 0;
+  const trainingRate = elapsedDays > 0 ? Math.round((trainingThisMonth / elapsedDays) * 100) : 0;
 
   return (
     <div className="space-y-4">
